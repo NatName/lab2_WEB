@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog</title>
+</head>
+<body>
+    <% if(blogs.length !== 0) { %>
+    <% for(let blog of blogs) { %>  
+        <div class="card m-4" >
+            <div class="card-header">
+              <%= blog.name %>
+              <button type="button" class="close" aria-label="Close" id=<%=blog.id%> onclick="deleteBlog(this.id)">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="card-body">
+              <p class="card-text"><%= blog.text %></p>
+              <% for(let comment of blog.comments) { %>
+                    <footer class="blockquote-footer"><%=comment.text %></footer>
+              <% } %>
+              <button type="button" class="btn btn-outline-secondary m-1 btn-sm" data-toggle="modal" data-target="#commentModal" onclick="getId(this.id)" id=<%=blog.id%> >
+                Add comment
+              </button>
+            </div>
+            
+          </div>
+
+    <% }} else {%>
+        <div class="card m-4" >
+            <div class="card-header">
+              Your blog
+            </div>
+            <div class="card-body">
+              <p class="card-text">You can place here your first blog</p>
+              <p class="card-text">
+                  Just click button "add Blog"
+              </p>
+            </div>
+          </div>
+    <% } %>
+    <button type="button" class="btn btn-primary m-4" data-toggle="modal" data-target="#exampleModal">
+        Add blog
+    </button>
+    <div class="modal fade" id="commentModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="form-group">
+                      <label for="text" class="col-form-label">Text</label>
+                      <textarea class="form-control" id="textComment" rows="4"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              <button type="button" class="btn btn-primary" data-dismiss="modal" id="saveComment">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>  
+      
+      <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="form-group">
+                      <label for="name" class="col-form-label">Blog name</label>
+                      <input type="text" class="form-control" id="name">
+                    </div>
+                    <div class="form-group">
+                      <label for="text" class="col-form-label">Text</label>
+                      <textarea class="form-control" id="text" rows="12"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              <button type="button" class="btn btn-primary" data-dismiss="modal" id="saveBlog">Save changes</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="col-12 col-md-4 m-1">
+          <div class="card m-4 " >
+            <div class="card-header">
+              Worker: Count Blogs
+            </div>
+            <div class="card-body">
+              <p id="count_blogs"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <script id="worker1" type="javascript/worker">
+        self.onmessage = function(e) {
+          let result = '';
+          for(let temp of e.data.data) {
+            result += "name: " + temp.name + " comments: " + temp.comments + "<br \/>"; 
+          }
+
+          self.postMessage(result);
+        };
+        // Rest of your worker code goes here.
+      </script>
+      <script>  
+
+        
+              fetch('/count', {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json;charset=utf-8'
+                }
+              }).then(res =>  res.json())
+              .then(res => {
+                const blob = new Blob([
+                  document.querySelector('#worker1').textContent
+                ], { type: "text/javascript" })
+
+                // Note: window.webkitURL.createObjectURL() in Chrome 10+.
+                const worker = new Worker(window.URL.createObjectURL(blob));
+                worker.onmessage = function(e) {
+                  const primeContainer = document.getElementById("count_blogs");
+                  primeContainer.innerHTML = e.data;
+                }
+                worker.postMessage(res);  
+              });
+              
+          
+        const save = document.getElementById('saveBlog');
+        const saveComment = document.getElementById('saveComment');
+        saveComment.addEventListener('click', saveCommentFunc, false);
+        save.addEventListener('click', saveData, false);
+
+        async function deleteBlog(id) {
+            const response = await fetch(`/blogs`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json;charset=utf-8'
+                },
+                body: JSON.stringify({id})
+                });
+                if (!response.ok) {
+                    const json = await response.json();
+                    console.log(json);
+                    
+                }
+                window.location.href = "/blogs";
+        }
+
+        let id;
+        function getId(val) {
+            id = val;
+        }
+        
+
+        async function saveCommentFunc (e) {
+            e.preventDefault();
+            const value = e;
+
+            const text = document.getElementById("textComment").value;
+            
+            const response = await fetch(`/blogs/comments/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json;charset=utf-8'
+                },
+                body: JSON.stringify({text})
+                });
+                if (!response.ok) {
+                    const json = await response.json();
+                    console.log(json);
+                    
+                }
+                window.location.href = "/blogs";
+
+        }
+
+        async function saveData (e) {
+            e.preventDefault();
+
+            const name = document.getElementById("name").value;
+            const text = document.getElementById("text").value;
+            blog = {
+                name,
+                text
+            }
+            console.log(text);
+            
+            
+            const response = await fetch('/blogs', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json;charset=utf-8'
+                },
+                body: JSON.stringify(blog)
+                });
+                if (!response.ok) {
+                    const json = await response.json();
+                    console.log(json);
+                    
+                }
+                window.location.href = "/blogs";
+
+        }
+    </script>
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+</body>
+</html>

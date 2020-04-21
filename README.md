@@ -5,7 +5,7 @@ This project requires Node.js
 git clone SSH this project  
 cd lab2_WEB  
 npm i  
-npm start  
+npm run server  
 
 <h1 align="center">Лабораторна робота №2</h1>
 

@@ -18,9 +18,10 @@
             </div>
             <div class="card-body">
               <p class="card-text"><%= blog.text %></p>
+              <% if(blog.comments.length !== 0) { %>
               <% for(let comment of blog.comments) { %>
                     <footer class="blockquote-footer"><%=comment.text %></footer>
-              <% } %>
+              <% }} %>
               <button type="button" class="btn btn-outline-secondary m-1 btn-sm" data-toggle="modal" data-target="#commentModal" onclick="getId(this.id)" id=<%=blog.id%> >
                 Add comment
               </button>
@@ -126,14 +127,15 @@
               fetch('/count', {
                 method: 'GET',
                 headers: {
-                  'Content-Type': 'application/json;charset=utf-8'
+                  'Content-Type': 'application/json'
                 }
               }).then(res =>  res.json())
               .then(res => {
                 const blob = new Blob([
                   document.querySelector('#worker1').textContent
                 ], { type: "text/javascript" })
-
+                console.log(res);
+                
                 // Note: window.webkitURL.createObjectURL() in Chrome 10+.
                 const worker = new Worker(window.URL.createObjectURL(blob));
                 worker.onmessage = function(e) {
@@ -141,19 +143,22 @@
                   primeContainer.innerHTML = e.data;
                 }
                 worker.postMessage(res);  
-              });
+              }).catch((err) => {
+                  console.log(err);
+                });
               
           
         const save = document.getElementById('saveBlog');
         const saveComment = document.getElementById('saveComment');
         saveComment.addEventListener('click', saveCommentFunc, false);
         save.addEventListener('click', saveData, false);
-
         async function deleteBlog(id) {
+          try {
+            
             const response = await fetch(`/blogs`, {
                 method: 'DELETE',
                 headers: {
-                    'Content-Type': 'application/json;charset=utf-8'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({id})
                 });
@@ -163,6 +168,11 @@
                     
                 }
                 window.location.href = "/blogs";
+
+          } catch (error) {
+            console.log(error);
+            
+          }
         }
 
         let id;
@@ -176,11 +186,11 @@
             const value = e;
 
             const text = document.getElementById("textComment").value;
-            
-            const response = await fetch(`/blogs/comments/${id}`, {
+            try {
+              const response = await fetch(`/blogs/comments/${id}`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json;charset=utf-8'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({text})
                 });
@@ -190,6 +200,11 @@
                     
                 }
                 window.location.href = "/blogs";
+            } catch (error) {
+              console.log();
+              
+            }
+            
 
         }
 
@@ -204,11 +219,11 @@
             }
             console.log(text);
             
-            
-            const response = await fetch('/blogs', {
+            try {
+              const response = await fetch('/blogs', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json;charset=utf-8'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(blog)
                 });
@@ -218,6 +233,11 @@
                     
                 }
                 window.location.href = "/blogs";
+            } catch (error) {
+              console.log(error);
+              
+            }
+            
 
         }
     </script>

@@ -12,8 +12,7 @@ class Blog {
     async deleteComments(id) {
         
         const { commentsId, comments } = JSON.parse(await fs.readFile('./data/comments.json', "utf8"));
-        const comment = comments.filter(comment => id.some(temp => temp !== parseInt(comment.id)));
-        console.log(comment);
+        const comment = comments.filter(comment => !id.some(temp => temp === parseInt(comment.id)));
                 
         await fs.writeFile('./data/comments.json', JSON.stringify({commentsId, comments: comment}));
     }
@@ -33,7 +32,12 @@ class Blog {
                 
                 const comments = await Promise.all(commentsPromises);
                 
-                blog.comments = comments;
+                if(comments) {
+                    blog.comments = comments;
+                } else {
+                    blog.comments = []
+                }
+                
             }  
                       
             return blogs;           
